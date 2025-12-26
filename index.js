@@ -1,7 +1,7 @@
 const express = require("express");
 const app = express();
 const cors = require("cors");
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require("dotenv").config();
 const PORT = process.env.PORT || 5000;
 
@@ -33,6 +33,25 @@ async function run() {
             res.send(parcels)
         });
 
+
+        // =================Parcel User Data get and show in dashboard UI===========================
+        app.get('/parcels', async (req, res) => {
+            try {
+                const userEmail = req.query.email;
+                const query = userEmail ? { createdBy: userEmail } : {};
+                const options = {
+                    sort: { createdAt: -1 }
+                };
+                const result = await parcelCollection.find(query, options).toArray();
+                res.send(result)
+            } catch (error) {
+                console.error('error fetching parcels', error);
+                res.status(500).send({ message: 'Failed to get parcels' })
+            }
+        });
+
+
+        // ==================Parcel Data Save in DB==============================================
         app.post('/parcels', async (req, res) => {
             try {
                 const parcels = req.body;
@@ -42,7 +61,21 @@ async function run() {
                 console.error('error inserting parcel', error);
                 res.status(500).send({ message: 'Failed to create message' })
             }
-        })
+        });
+
+        // =================Parcel Delete Data in mongoBD=========================
+        app.delete('/parcels/:id', async (req, res) => {
+            try {
+                const deleteId = req.params.id;
+                const result = await parcelCollection.deleteOne({ _id: new ObjectId(deleteId) });
+                res.send(result);
+            } catch (error) {
+                console.error('Error deleting parcels', error);
+                res.status(500).send({ message: 'Failed to delete parcels' })
+            }
+        });
+
+
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
